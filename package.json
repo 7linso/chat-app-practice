@@ -13,12 +13,12 @@
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
-      "npm -w frontend run lint-staged:eslint --",
-      "npm -w frontend run lint-staged:prettier --"
+      "npm -w frontend exec eslint -- --fix --cache --max-warnings=0",
+      "npm -w frontend exec prettier -- --write"
     ],
-    "backend/**/*.{js,ts}": [
-      "npm -w backend run lint-staged:eslint --",
-      "npm -w backend run lint-staged:prettier --"
+    "backend/**/*.{js,ts,tsx}": [
+      "npm -w backend exec eslint -- --fix --cache --max-warnings=0",
+      "npm -w backend exec prettier -- --write"
     ]
   },
   "devDependencies": {
