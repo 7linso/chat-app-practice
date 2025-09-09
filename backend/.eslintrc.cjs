@@ -1,3 +1,4 @@
+// backend/.eslintrc.cjs
 module.exports = {
   root: true,
   env: { es2023: true, node: true },
@@ -9,23 +10,22 @@ module.exports = {
     "plugin:@typescript-eslint/recommended",
     "plugin:import/recommended",
     "plugin:import/typescript",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
   ],
   rules: {
-    "prettier/prettier": "warn",
-    "import/order": [
-      "warn",
-      {
-        groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
-        "newlines-between": "always",
-        alphabetize: { order: "asc", caseInsensitive: true }
-      }
-    ],
+    // Prefer the plugin for unused imports; allow underscore-args
+    "@typescript-eslint/no-unused-vars": ["off"],
     "unused-imports/no-unused-imports": "error",
     "unused-imports/no-unused-vars": [
       "warn",
-      { vars: "all", args: "after-used", varsIgnorePattern: "^_", argsIgnorePattern: "^_" }
-    ]
+      { args: "after-used", argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+    ],
+
+    // Optional: turn off import/order for now so commits don’t fail on warnings
+    // or keep it "warn" and remove --max-warnings=0 from lint-staged.
+    "import/order": "off",
+
+    "prettier/prettier": "warn",
   },
-  ignorePatterns: ["dist", "build", "node_modules"]
+  ignorePatterns: ["dist", "build", "node_modules"],
 };

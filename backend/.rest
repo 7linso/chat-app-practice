@@ -1,0 +1,34 @@
+@baseUrl = http://localhost:5001/api
+@json = application/json
+
+
+### Sign Up
+# @name signup
+POST {{baseUrl}}/auth/signup
+Content-Type: {{json}}
+
+{
+  "email": "tes222@example.com",
+  "fullName": "John Weak",
+  "password": "sec2993"
+}
+
+### Sign In
+# @name signin
+POST {{baseUrl}}/auth/signin
+Content-Type: {{json}}
+
+{
+  "email": "tes222@example.com",
+  "password": "sec2993"
+}
+
+### Sign Out
+# @name signout
+POST {{baseUrl}}/auth/signout
+Content-Type: {{json}}
+
+### Update Profile
+# @name update-profile
+POST {{baseUrl}}/auth/update-profile
+Content-Type: {{json}}
