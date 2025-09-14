@@ -28,7 +28,8 @@ Content-Type: {{json}}
 POST {{baseUrl}}/auth/signout
 Content-Type: {{json}}
 
-### Update Profile
-# @name update-profile
-POST {{baseUrl}}/auth/update-profile
+### Check
+# @name signout
+GET {{baseUrl}}/auth/check
 Content-Type: {{json}}
+

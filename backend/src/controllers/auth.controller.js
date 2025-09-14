@@ -1,14 +1,14 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
+
   try {
     if (!fullName || !email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Full name, email and password are required." });
+      return res.status(400).json({ message: "All fields are required." });
     }
     if (password.length < 6) {
       return res
@@ -52,6 +52,7 @@ export const signup = async (req, res) => {
 
 export const signin = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
@@ -80,9 +81,41 @@ export const signout = (_req, res) => {
     res.cookie("jwt", "", { maxAge: 0 });
     res.status(200).json({ message: "Logged Out" });
   } catch (e) {
-    console.log(`Error signup: ${e}`);
+    console.log(`Error signout: ${e}`);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-export const updateProfile = async (_req, _res) => {};
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    const userId = req.user._id;
+
+    if (!profilePic)
+      return res.staus(400).json({ message: "Profile picture is required." });
+
+    const result = await cloudinary.uploader.upload(profilePic);
+    if (!result)
+      return res.staus(500).json({ message: "Internal Server Error." });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePic: result.secure_url },
+      { new: true },
+    );
+
+    res.status(200).json(updatedUser);
+  } catch (e) {
+    console.log("Error updating profile");
+    res.staus(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const checkAuth = (req, res) => {
+  try {
+    res.status(200).json(req.user);
+  } catch (e) {
+    console.log("Error checking profile");
+    res.staus(500).json({ message: "Not Authenticated" });
+  }
+};
