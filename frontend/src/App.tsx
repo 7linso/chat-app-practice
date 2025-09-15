@@ -10,6 +10,7 @@ import SettingsPage from "./pages/SettingsPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import { useAuthStore } from "./store/useAuthStore";
+import { useThemeStore } from "./store/useThemeStore";
 
 type User = {
   fullname?: string;
@@ -26,15 +27,19 @@ type useAuthStoreProps = {
   isCheckingAuth: boolean;
 };
 
+type useThemeStoreProps = {
+  theme: string;
+  setTheme: (theme: string) => void;
+};
+
 export const App = () => {
   const { authUser, checkAuth, isCheckingAuth }: useAuthStoreProps =
     useAuthStore();
+  const { theme }: useThemeStoreProps = useThemeStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
-  console.log({ authUser });
 
   if (isCheckingAuth && !authUser)
     return (
@@ -45,7 +50,7 @@ export const App = () => {
 
   return (
     <>
-      <div>
+      <div data-theme={theme}>
         <Navbar />
         <Routes>
           <Route
