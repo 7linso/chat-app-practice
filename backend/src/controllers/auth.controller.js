@@ -89,25 +89,60 @@ export const signout = (_req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { profilePic } = req.body;
-    const userId = req.user._id;
+    const userId = req.user._id || req.user.id;
 
-    if (!profilePic)
-      return res.staus(400).json({ message: "Profile picture is required." });
+    // 1) auth
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const result = await cloudinary.uploader.upload(profilePic);
-    if (!result)
-      return res.staus(500).json({ message: "Internal Server Error." });
+    // 2) input presence/shape
+    if (!profilePic || typeof profilePic !== "string") {
+      return res.status(400).json({ message: "Profile picture is required." });
+    }
 
+    const trimmed = profilePic.trim();
+    const uploadSource = trimmed.startsWith("data:")
+      ? trimmed
+      : `data:image/jpeg;base64,${trimmed}`;
+
+    // quick visibility logs (remove after debug)
+    console.log("[updateProfile] userId:", userId);
+    console.log("[updateProfile] body length:", uploadSource.length);
+    console.log(
+      "[updateProfile] prefix:",
+      uploadSource.slice(0, Math.min(40, uploadSource.length)),
+    );
+
+    // 3) cloudinary upload
+    const result = await cloudinary.uploader.upload(uploadSource, {
+      folder: "chat-app-practice",
+      resource_type: "image",
+      overwrite: true,
+    });
+
+    console.log("[updateProfile] cloudinary.secure_url:", result?.secure_url);
+
+    if (!result?.secure_url) {
+      return res.status(502).json({ message: "Upload failed at Cloudinary." });
+    }
+
+    // 4) db save
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: result.secure_url },
-      { new: true },
+      { new: true, runValidators: true, projection: { password: 0 } },
     );
 
-    res.status(200).json(updatedUser);
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // 5) return fresh user (ensure schema actually has 'profilePic')
+    return res.status(200).json(updatedUser);
   } catch (e) {
-    console.log("Error updating profile");
-    res.staus(500).json({ message: "Internal Server Error" });
+    console.error("[updateProfile] error:", e);
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
   }
 };
 

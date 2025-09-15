@@ -33,3 +33,11 @@ Content-Type: {{json}}
 GET {{baseUrl}}/auth/check
 Content-Type: {{json}}
 
+### Update Profile
+# @name update
+GET {{baseUrl}}/auth/update-profile
+Content-Type: {{json}}
+
+{
+  "profilePic": "tes222@example.com"
+}

@@ -1,13 +1,16 @@
+import axios from "axios";
 import { toast } from "react-hot-toast";
 import { create } from "zustand";
 
 import { axiosInstance } from "../lib/axios.js";
 
 type User = {
-  fullname?: string;
+  fullName: string;
   email: string;
   profilePic?: string;
-  password?: string;
+  password: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type UserOrNull = User | null;
@@ -31,11 +34,16 @@ type SignInProps = {
   password: string;
 };
 
+type UpdateProfileProps = {
+  profilePic: string;
+};
+
 type AuthActions = {
   checkAuth: () => Promise<void>;
   signUp: (data: SignUpProps) => Promise<void>;
   signOut: () => Promise<void>;
   signIn: (data: SignInProps) => Promise<void>;
+  updateProfile: (data: UpdateProfileProps) => Promise<void>;
 };
 
 type useAuthStoreProps = AuthActions & AuthState;
@@ -94,6 +102,25 @@ export const useAuthStore = create<useAuthStoreProps>((set) => ({
       toast.error("Failed to sign in");
     } finally {
       set({ isSigningIn: false });
+    }
+  },
+
+  updateProfile: async (data: UpdateProfileProps) => {
+    set({ isUpdatingProfile: true });
+    try {
+      const res = await axiosInstance.put("/auth/update-profile", data);
+      set({ authUser: res.data });
+      toast.success("Updated profile image successfully");
+    } catch (e: unknown) {
+      toast.error("Failed to upload image. Try again later.");
+      if (axios.isAxiosError(e)) {
+        console.error("status:", e.response?.status);
+        console.error("message:", e.response?.data);
+      } else {
+        console.error(e);
+      }
+    } finally {
+      set({ isUpdatingProfile: false });
     }
   },
 }));
