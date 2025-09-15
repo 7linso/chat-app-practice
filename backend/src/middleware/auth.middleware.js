@@ -8,7 +8,7 @@ export const protectRoute = async (req, res, next) => {
     if (!token)
       return res
         .status(401)
-        .join({ message: "Unauthorised - No Token Provided" });
+        .json({ message: "Unauthorised - No Token Provided" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
