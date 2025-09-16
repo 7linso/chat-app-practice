@@ -21,10 +21,6 @@ function broadcastOnline() {
   io.emit("onlineUsers", Array.from(sessions.keys()));
 }
 
-export function getReceiverSocketId(userId) {
-  return sessions.get(userId);
-}
-
 io.use((socket, next) => {
   const userId = socket.handshake.auth?.userId;
   if (!userId) return next(new Error("unauthorized"));
