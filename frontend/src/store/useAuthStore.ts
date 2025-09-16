@@ -6,14 +6,6 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import { resolveSocketURL } from "../lib/resolveSocketURL.js";
 
-type ServerToClientEvents = {
-  onlineUsers: (ids: string[]) => void;
-};
-
-type ClientToServerEvents = {
-  sendMessage: (to: string, text: string) => void;
-};
-
 type User = {
   _id: string;
   fullName: string;
@@ -31,7 +23,7 @@ type AuthState = {
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
   onlineUsers: string[];
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
+  socket: Socket<any, any> | null;
 };
 
 type SignUpProps = {

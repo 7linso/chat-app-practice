@@ -23,6 +23,7 @@ module.exports = {
     "plugin:prettier/recommended"
   ],
   rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
     "prettier/prettier": "warn",
     "react/react-in-jsx-scope": "off",
     "import/order": [
