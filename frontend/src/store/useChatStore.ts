@@ -14,12 +14,18 @@ type User = {
 };
 
 type Message = {
-  senderId?: string;
-  receiverId?: string;
+  _id: string;
+  senderId: string;
+  receiverId: string;
   text: string | null;
   image: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SendMessage = {
+  text: string | null;
+  image: string | null;
 };
 
 type useChatStoreProps = {
@@ -32,7 +38,7 @@ type useChatStoreProps = {
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   setSelectedUser: (selectedUser: User | null) => void;
-  sendMessage: (data: Message) => void;
+  sendMessage: (data: SendMessage) => void;
 };
 
 export const useChatStore = create<useChatStoreProps>((set, get) => ({
@@ -66,7 +72,7 @@ export const useChatStore = create<useChatStoreProps>((set, get) => ({
     }
   },
 
-  sendMessage: async (data: Message) => {
+  sendMessage: async (data: SendMessage) => {
     const { selectedUser, messages } = get();
     console.log(data, selectedUser, messages);
     if (!selectedUser) return;
