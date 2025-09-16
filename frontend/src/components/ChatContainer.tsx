@@ -9,17 +9,23 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 
 export default function ChatContainer() {
-  const { messages, getMessages, isMessagesLoading, selectedUser } =
-    useChatStore();
+  const {
+    messages,
+    getMessages,
+    isMessagesLoading,
+    selectedUser,
+    subscribeToMessages,
+  } = useChatStore();
   const { authUser } = useAuthStore();
 
   const userId = selectedUser?._id;
 
   useEffect(() => {
-    if (userId) {
-      getMessages(userId);
-    }
-  }, [userId, getMessages]);
+    if (!userId) return;
+    getMessages(userId);
+    const unsubscribe = subscribeToMessages();
+    return unsubscribe;
+  }, [userId, getMessages, subscribeToMessages]);
 
   if (!authUser) return;
   if (!selectedUser) return;

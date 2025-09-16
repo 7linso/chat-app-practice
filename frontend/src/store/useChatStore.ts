@@ -3,6 +3,8 @@ import { create } from "zustand";
 
 import { axiosInstance } from "../lib/axios";
 
+import { useAuthStore } from "./useAuthStore";
+
 type User = {
   _id: string;
   fullName: string;
@@ -39,6 +41,8 @@ type useChatStoreProps = {
   getMessages: (userId: string) => Promise<void>;
   setSelectedUser: (selectedUser: User | null) => void;
   sendMessage: (data: SendMessage) => void;
+  subscribeToMessages: () => () => void;
+  unsubscribeToMessages: () => void;
 };
 
 export const useChatStore = create<useChatStoreProps>((set, get) => ({
@@ -85,6 +89,35 @@ export const useChatStore = create<useChatStoreProps>((set, get) => ({
     } catch (e) {
       toast.error("Cannot send message");
     }
+  },
+
+  subscribeToMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    const selectedUser = get().selectedUser;
+    if (!socket || !selectedUser) return () => {};
+
+    const handler = (msg: Message) => {
+      if (
+        msg.senderId !== selectedUser._id &&
+        msg.receiverId !== selectedUser._id
+      )
+        return;
+      set((state) => ({ messages: [...state.messages, msg] }));
+    };
+
+    socket.off("newMessage", handler);
+    socket.on("newMessage", handler);
+
+    return () => {
+      socket.off("newMessage", handler);
+    };
+  },
+
+  unsubscribeToMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+
+    socket.off("newMessage");
   },
 
   setSelectedUser: (selectedUser: User | null) => set({ selectedUser }),

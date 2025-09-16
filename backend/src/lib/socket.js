@@ -15,6 +15,16 @@ const io = new Server(server, {
   path: "/socket.io",
 });
 
+const sessions = new Map();
+
+function broadcastOnline() {
+  io.emit("onlineUsers", Array.from(sessions.keys()));
+}
+
+export function getReceiverSocketId(userId) {
+  return sessions.get(userId);
+}
+
 io.use((socket, next) => {
   const userId = socket.handshake.auth?.userId;
   if (!userId) return next(new Error("unauthorized"));
@@ -23,10 +33,24 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  console.log(`Connected  ${socket.id}`);
+  const userId = socket.data.userId;
+
+  const prev = sessions.get(userId);
+  if (prev && prev !== socket.id)
+    io.sockets.sockets.get(prev)?.disconnect(true);
+
+  sessions.set(userId, socket.id);
+  socket.join(`user:${userId}`); // useful for targeted emits
+  broadcastOnline();
+
+  console.log("Connected", socket.id, "user:", userId);
 
   socket.on("disconnect", () => {
-    console.log(`Disconnected  ${socket.id}`);
+    if (sessions.get(userId) === socket.id) {
+      sessions.delete(userId);
+      broadcastOnline();
+    }
+    console.log("Disconnected", socket.id);
   });
 });
 

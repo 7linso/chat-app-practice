@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
 import { v2 as cloudinary } from "cloudinary";
+import { io } from "../lib/socket.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -50,7 +51,7 @@ export const sendMessage = async (req, res) => {
         overwrite: true,
       });
       if (!result)
-        return res.staus(500).json({ message: "Internal Server Error." });
+        return res.status(500).json({ message: "Internal Server Error." });
 
       imageURL = result.secure_url;
     }
@@ -63,7 +64,10 @@ export const sendMessage = async (req, res) => {
     });
     await newMessage.save();
 
-    res.status(200).json(newMessage);
+    io.to(`user:${receiverId}`).emit("newMessage", newMessage);
+    io.to(`user:${senderId}`).emit("newMessage", newMessage);
+
+    res.status(201).json(newMessage);
   } catch (e) {
     console.log(`Error send message: ${e}`);
     res.status(500).json({ message: "Internal Server Error" });

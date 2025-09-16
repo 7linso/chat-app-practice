@@ -12,34 +12,20 @@ import SignUpPage from "./pages/SignUpPage";
 import { useAuthStore } from "./store/useAuthStore";
 import { useThemeStore } from "./store/useThemeStore";
 
-type User = {
-  fullname?: string;
-  email: string;
-  profilePic?: string;
-  password?: string;
-};
-
-type UserOrNull = User | null;
-
-type useAuthStoreProps = {
-  authUser: UserOrNull;
-  checkAuth: () => Promise<void>;
-  isCheckingAuth: boolean;
-};
-
 type useThemeStoreProps = {
   theme: string;
   setTheme: (theme: string) => void;
 };
 
 export const App = () => {
-  const { authUser, checkAuth, isCheckingAuth }: useAuthStoreProps =
-    useAuthStore();
+  const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
   const { theme }: useThemeStoreProps = useThemeStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  console.log(onlineUsers);
 
   if (isCheckingAuth && !authUser)
     return (
