@@ -44,7 +44,11 @@ export const sendMessage = async (req, res) => {
     let imageURL;
 
     if (image) {
-      const result = await cloudinary.uploader.upload(image);
+      const result = await cloudinary.uploader.upload(image, {
+        folder: "chat-app-practice",
+        resource_type: "image",
+        overwrite: true,
+      });
       if (!result)
         return res.staus(500).json({ message: "Internal Server Error." });
 
@@ -59,7 +63,6 @@ export const sendMessage = async (req, res) => {
     });
     await newMessage.save();
 
-    //todo: socket.io
     res.status(200).json(newMessage);
   } catch (e) {
     console.log(`Error send message: ${e}`);

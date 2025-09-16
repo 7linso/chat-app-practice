@@ -17,7 +17,7 @@ const PREVIEW_MESSAGES = [
   },
 ];
 
-const SettingsPage = () => {
+export default function SettingsPage() {
   const { theme, setTheme }: useThemeStoreProps = useThemeStore();
 
   return (
@@ -127,5 +127,4 @@ const SettingsPage = () => {
       </div>
     </div>
   );
-};
-export default SettingsPage;
+}

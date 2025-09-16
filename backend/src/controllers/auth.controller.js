@@ -91,10 +91,8 @@ export const updateProfile = async (req, res) => {
     const { profilePic } = req.body;
     const userId = req.user._id || req.user.id;
 
-    // 1) auth
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // 2) input presence/shape
     if (!profilePic || typeof profilePic !== "string") {
       return res.status(400).json({ message: "Profile picture is required." });
     }
@@ -104,7 +102,6 @@ export const updateProfile = async (req, res) => {
       ? trimmed
       : `data:image/jpeg;base64,${trimmed}`;
 
-    // quick visibility logs (remove after debug)
     console.log("[updateProfile] userId:", userId);
     console.log("[updateProfile] body length:", uploadSource.length);
     console.log(
@@ -112,7 +109,6 @@ export const updateProfile = async (req, res) => {
       uploadSource.slice(0, Math.min(40, uploadSource.length)),
     );
 
-    // 3) cloudinary upload
     const result = await cloudinary.uploader.upload(uploadSource, {
       folder: "chat-app-practice",
       resource_type: "image",

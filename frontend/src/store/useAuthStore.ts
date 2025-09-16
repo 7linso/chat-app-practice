@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 
 type User = {
+  _id: string;
   fullName: string;
   email: string;
   profilePic?: string;
@@ -13,14 +14,13 @@ type User = {
   updatedAt: string;
 };
 
-type UserOrNull = User | null;
-
 type AuthState = {
-  authUser: UserOrNull;
+  authUser: User | null;
   isSigningUp: boolean;
   isSigningIn: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
+  onlineUsers: string[];
 };
 
 type SignUpProps = {
@@ -55,11 +55,11 @@ export const useAuthStore = create<useAuthStoreProps>((set) => ({
   isUpdatingProfile: false,
 
   isCheckingAuth: true,
+  onlineUsers: [],
 
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
-
       set({ authUser: res.data });
     } catch (e) {
       console.log(`Checking auth: ${e}`);
