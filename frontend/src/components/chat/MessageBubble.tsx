@@ -25,6 +25,7 @@ type MessageBubbleProps = {
   authUser: User;
   selectedUser: User;
   showMeta: boolean;
+  onRightClick: (m: Message, e: React.MouseEvent) => void;
 };
 
 export default function MessageBubble({
@@ -32,14 +33,21 @@ export default function MessageBubble({
   authUser,
   selectedUser,
   showMeta,
+  onRightClick,
 }: MessageBubbleProps) {
   const isMine = message.senderId === authUser._id;
   const avatarUrl = isMine
     ? authUser.profilePic || "/avatar.png"
     : selectedUser.profilePic || "/avatar.png";
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onRightClick?.(message, e);
+  };
+
   return (
     <div
+      key={message._id}
       className={`chat ${isMine ? "chat-end" : "chat-start"}
             ${!showMeta && "mx-10"}`}
     >
@@ -58,7 +66,10 @@ export default function MessageBubble({
           </div>
         </>
       )}
-      <div className={`chat-bubble flex flex-col`}>
+      <div
+        className={`chat-bubble flex flex-col`}
+        onContextMenu={handleContextMenu}
+      >
         {message.image && (
           <img
             src={message.image}
