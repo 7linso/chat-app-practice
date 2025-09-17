@@ -1,6 +1,6 @@
-import ChatContainer from "../components/ChatContainer";
-import NoChatSelected from "../components/NoChatSelected";
-import Sidebar from "../components/Sidebar";
+import ChatContainer from "../components/chat/ChatContainer";
+import NoChatSelected from "../components/common/NoChatSelected";
+import Sidebar from "../components/common/Sidebar";
 import { useChatStore } from "../store/useChatStore";
 
 export default function HomePage() {

@@ -2,8 +2,8 @@ import { X, Image, Send } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
-import { readFileAsDataURL } from "../lib/readFileAsDataURL";
-import { useChatStore } from "../store/useChatStore";
+import { readFileAsDataURL } from "../../lib/readFileAsDataURL";
+import { useChatStore } from "../../store/useChatStore";
 
 export default function MessageInput() {
   const [text, setText] = useState<string>("");
