@@ -5,11 +5,16 @@ import { axiosInstance } from "../lib/axios";
 
 import { useAuthStore } from "./useAuthStore";
 
+type profilePicProps = {
+  imageUrl: string | null;
+  postedAt: string;
+};
+
 type User = {
   _id: string;
   fullName: string;
   email: string;
-  profilePic?: string;
+  profilePic?: profilePicProps[];
   password: string;
   createdAt: string;
   updatedAt: string;

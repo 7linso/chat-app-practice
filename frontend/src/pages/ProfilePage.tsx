@@ -30,7 +30,11 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <img
-              src={selectedImg || authUser?.profilePic || "/avatar.png"}
+              src={
+                selectedImg ||
+                authUser?.profilePic?.[0]?.imageUrl ||
+                "/avatar.png"
+              }
               alt="Profile"
               className="size-32 rounded-full object-cover border-4 "
             />
@@ -80,7 +84,7 @@ export default function ProfilePage() {
                 Username
               </div>
               <div className="flex items-center bg-base-200 rounded-lg border">
-                <p className="px-4 py-2.5 flex-1">TODO username</p>
+                <p className="px-4 py-2.5 flex-1">{authUser?.username}</p>
               </div>
             </div>
           </div>
@@ -101,8 +105,12 @@ export default function ProfilePage() {
               <BookOpen className="w-4 h-4" />
               Bio
             </div>
-            <div className="flex items-center bg-base-200 rounded-lg border ">
-              <p className="px-4 py-2.5 flex-1">TODO bio</p>
+            <div className="flex items-center bg-base-200 rounded-lg border">
+              <p className="px-4 py-2.5 flex-1 ">
+                {authUser?.bio
+                  ? `${authUser?.bio}`
+                  : "Add something about you..."}
+              </p>
               {/* <Pencil size={20} className="mr-4" /> */}
             </div>
           </div>

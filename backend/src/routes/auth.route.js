@@ -3,7 +3,7 @@ import {
   signup,
   signin,
   signout,
-  updateProfile,
+  updateProfilePic,
   checkAuth,
 } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
@@ -16,7 +16,7 @@ router.post("/signin", signin);
 
 router.post("/signout", signout);
 
-router.put("/update-profile", protectRoute, updateProfile);
+router.put("/update-profile-pic", protectRoute, updateProfilePic);
 
 router.get("/check", protectRoute, checkAuth);
 

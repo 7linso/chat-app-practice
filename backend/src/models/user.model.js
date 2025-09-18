@@ -1,5 +1,19 @@
 import mongoose from "mongoose";
 
+const ProfilePicSchema = new mongoose.Schema(
+  {
+    imageUrl: {
+      type: String,
+      required: true,
+    },
+    postedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -11,14 +25,23 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     password: {
       type: String,
       required: true,
       minLength: 6,
     },
     profilePic: {
+      type: [ProfilePicSchema],
+      default: [],
+    },
+    bio: {
       type: String,
-      default: "",
+      maxLength: 200,
     },
   },
   { timestamps: true },

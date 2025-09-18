@@ -4,10 +4,10 @@ import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 
 export const signup = async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName, username, email, password } = req.body;
 
   try {
-    if (!fullName || !email || !password) {
+    if (!fullName || !username || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
     if (password.length < 6) {
@@ -18,9 +18,18 @@ export const signup = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existing = await User.findOne({ email: normalizedEmail }).lean();
-    if (existing) {
+    const existingEmail = await User.findOne({ email: normalizedEmail }).lean();
+    if (existingEmail) {
       return res.status(409).json({ message: "Email is already used." });
+    }
+
+    const normalizedUsername = email.trim();
+
+    const existingUsername = await User.findOne({
+      username: normalizedUsername,
+    }).lean();
+    if (existingUsername) {
+      return res.status(409).json({ message: "Username is already used." });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -28,6 +37,7 @@ export const signup = async (req, res) => {
 
     const newUser = new User({
       fullName,
+      username,
       email,
       password: hashedPassword,
     });
@@ -38,11 +48,23 @@ export const signup = async (req, res) => {
     generateToken(newUser._id, res);
     await newUser.save();
 
+    const me = await User.findById(newUser._id, {
+      fullName: 1,
+      username: 1,
+      email: 1,
+      profilePic: { $slice: -1 },
+    }).lean();
+
+    const latest = me.profilePic?.[0] || null;
+
     res.status(201).json({
       _id: newUser._id,
       fullName: newUser.fullName,
+      username: newUser.username,
       email: newUser.email,
-      profilePic: newUser.profilePic,
+      profilePic: latest ? latest.imageUrl : null,
+      profilePicPostedAt: latest?.postedAt ?? null,
+      bio: newUser.bio,
     });
   } catch (e) {
     console.log(`Error signup: ${e}`);
@@ -51,11 +73,18 @@ export const signup = async (req, res) => {
 };
 
 export const signin = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+
+    const user = await User.findOne(
+      isEmail ? { email: identifier } : { username: identifier },
+    );
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const isPassword = await bcrypt.compare(password, user.password);
 
@@ -64,11 +93,23 @@ export const signin = async (req, res) => {
 
     generateToken(user._id, res);
 
-    res.status(200).json({
+    const me = await User.findById(user._id, {
+      fullName: 1,
+      username: 1,
+      email: 1,
+      profilePic: { $slice: -1 },
+    }).lean();
+
+    const latest = me.profilePic?.[0] || null;
+
+    res.status(201).json({
       _id: user._id,
       fullName: user.fullName,
+      username: user.username,
       email: user.email,
-      profilePic: user.profilePic,
+      profilePic: latest ? latest.imageUrl : null,
+      profilePicPostedAt: latest?.postedAt ?? null,
+      bio: user.bio,
     });
   } catch (e) {
     console.log(`Error signin: ${e}`);
@@ -86,7 +127,7 @@ export const signout = (_req, res) => {
   }
 };
 
-export const updateProfile = async (req, res) => {
+export const updateProfilePic = async (req, res) => {
   try {
     const { profilePic } = req.body;
     const userId = req.user._id || req.user.id;
@@ -102,17 +143,9 @@ export const updateProfile = async (req, res) => {
       ? trimmed
       : `data:image/jpeg;base64,${trimmed}`;
 
-    console.log("[updateProfile] userId:", userId);
-    console.log("[updateProfile] body length:", uploadSource.length);
-    console.log(
-      "[updateProfile] prefix:",
-      uploadSource.slice(0, Math.min(40, uploadSource.length)),
-    );
-
     const result = await cloudinary.uploader.upload(uploadSource, {
       folder: "chat-app-practice",
       resource_type: "image",
-      overwrite: true,
     });
 
     console.log("[updateProfile] cloudinary.secure_url:", result?.secure_url);
@@ -121,19 +154,39 @@ export const updateProfile = async (req, res) => {
       return res.status(502).json({ message: "Upload failed at Cloudinary." });
     }
 
-    // 4) db save
-    const updatedUser = await User.findByIdAndUpdate(
+    const MAX_PICS = 5;
+    const updated = await User.findByIdAndUpdate(
       userId,
-      { profilePic: result.secure_url },
-      { new: true, runValidators: true, projection: { password: 0 } },
-    );
+      {
+        $push: {
+          profilePic: {
+            $each: [{ imageUrl: result.secure_url, postedAt: new Date() }],
+            $slice: -MAX_PICS, // keep only the last N (remove this line if you want unlimited)
+          },
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+        projection: { password: 0 },
+      },
+    ).lean();
 
-    if (!updatedUser) {
+    const latest = updated.profilePic?.[updated.profilePic.length - 1] ?? null;
+
+    if (!updated) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // 5) return fresh user (ensure schema actually has 'profilePic')
-    return res.status(200).json(updatedUser);
+    return res.status(200).json({
+      _id: updated._id,
+      fullName: updated.fullName,
+      username: updated.username,
+      email: updated.email,
+      profilePic: latest ? latest.imageUrl : null,
+      profilePicPostedAt: latest?.postedAt ?? null,
+      bio: updated.bio ?? null,
+    });
   } catch (e) {
     console.error("[updateProfile] error:", e);
     if (!res.headersSent) {

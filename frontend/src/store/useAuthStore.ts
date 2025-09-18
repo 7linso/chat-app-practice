@@ -6,14 +6,21 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import { resolveSocketURL } from "../lib/resolveSocketURL.js";
 
+type profilePicProps = {
+  imageUrl: string | null;
+  postedAt: string;
+};
+
 type User = {
   _id: string;
   fullName: string;
+  username: string;
   email: string;
-  profilePic?: string;
+  profilePic?: profilePicProps[];
   password: string;
   createdAt: string;
   updatedAt: string;
+  bio: string;
 };
 
 type AuthState = {
@@ -28,12 +35,13 @@ type AuthState = {
 
 type SignUpProps = {
   fullName: string;
+  username: string;
   email: string;
   password: string;
 };
 
 type SignInProps = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -124,7 +132,7 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
   updateProfile: async (data: UpdateProfileProps) => {
     set({ isUpdatingProfile: true });
     try {
-      const res = await axiosInstance.put("/auth/update-profile", data);
+      const res = await axiosInstance.put("/auth/update-profile-pic", data);
       set({ authUser: res.data });
       toast.success("Updated profile image successfully");
     } catch (e: unknown) {
