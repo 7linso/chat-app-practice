@@ -52,7 +52,7 @@ export default function SignInPage() {
                 <input
                   type="text"
                   className={`input input-bordered w-full pl-10`}
-                  placeholder="you@example.com"
+                  placeholder="johny123@example.com"
                   value={formData.identifier}
                   onChange={(e) =>
                     setFormData({ ...formData, identifier: e.target.value })

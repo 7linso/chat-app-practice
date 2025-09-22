@@ -2,31 +2,33 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { io, type Socket } from "socket.io-client";
 import { create } from "zustand";
+export type ISODate = string;
 
 import { axiosInstance } from "../lib/axios.js";
 import { resolveSocketURL } from "../lib/resolveSocketURL.js";
 
-type profilePicProps = {
-  imageUrl: string | null;
-  postedAt: string;
-};
+// type profilePicProps = {
+//   imageUrl: string | null;
+//   postedAt: string;
+// };
 
 type User = {
   _id: string;
   fullName: string;
   username: string;
   email: string;
-  profilePic?: profilePicProps[];
-  password: string;
-  createdAt: string;
-  updatedAt: string;
-  bio: string;
+  bio: string | null;
+  profilePic: string | null;
+  profilePicPostedAt: ISODate | null;
+  createdAt: ISODate;
+  updatedAt: ISODate;
 };
 
 type AuthState = {
   authUser: User | null;
   isSigningUp: boolean;
   isSigningIn: boolean;
+  isUpdatingProfilePic: boolean;
   isUpdatingProfile: boolean;
   isCheckingAuth: boolean;
   onlineUsers: string[];
@@ -45,8 +47,15 @@ type SignInProps = {
   password: string;
 };
 
-type UpdateProfileProps = {
+type UpdateProfilePicProps = {
   profilePic: string;
+};
+
+type UpdateProfileProps = {
+  fullName: string;
+  username: string;
+  email: string;
+  bio: string;
 };
 
 type AuthActions = {
@@ -54,7 +63,9 @@ type AuthActions = {
   signUp: (data: SignUpProps) => Promise<void>;
   signOut: () => Promise<void>;
   signIn: (data: SignInProps) => Promise<void>;
+  updateProfilePic: (data: UpdateProfilePicProps) => Promise<void>;
   updateProfile: (data: UpdateProfileProps) => Promise<void>;
+  deleteProfile: () => Promise<void>;
   connectSocket: () => void;
   disconnectSocket: () => void;
 };
@@ -65,6 +76,7 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
   authUser: null,
   isSigningUp: false,
   isSigningIn: false,
+  isUpdatingProfilePic: false,
   isUpdatingProfile: false,
 
   isCheckingAuth: true,
@@ -105,8 +117,6 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
     try {
       await axiosInstance.post("/auth/signout");
       set({ authUser: null });
-      toast.success("Signed out successfully");
-
       get().disconnectSocket();
     } catch (e) {
       toast.error("Failed to sign out");
@@ -119,6 +129,7 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
       const res = await axiosInstance.post("/auth/signin", data);
       set({ authUser: res.data });
       toast.success("Welcome back!");
+      console.log("authUser.profilePic", res.data.profilePic);
 
       get().connectSocket();
     } catch (e) {
@@ -129,11 +140,17 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
     }
   },
 
-  updateProfile: async (data: UpdateProfileProps) => {
-    set({ isUpdatingProfile: true });
+  updateProfilePic: async (data: UpdateProfilePicProps) => {
+    set({ isUpdatingProfilePic: true });
     try {
       const res = await axiosInstance.put("/auth/update-profile-pic", data);
-      set({ authUser: res.data });
+      set((s) => ({
+        authUser: {
+          ...s.authUser!,
+          profilePic: res.data.profilePic,
+          profilePicPostedAt: res.data.profilePicPostedAt,
+        },
+      }));
       toast.success("Updated profile image successfully");
     } catch (e: unknown) {
       toast.error("Failed to upload image. Try again later.");
@@ -144,7 +161,39 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
         console.error(e);
       }
     } finally {
+      set({ isUpdatingProfilePic: false });
+    }
+  },
+
+  updateProfile: async (data: UpdateProfileProps) => {
+    set({ isUpdatingProfile: true });
+    try {
+      const res = await axiosInstance.put("/auth/update-profile", data);
+      toast.success("Account updated");
+      set({ authUser: res.data });
+
+      get().connectSocket();
+    } catch (e) {
+      toast.error("Failed to update account");
+      try {
+        await get().checkAuth();
+      } catch (e) {
+        console.log(e);
+      }
+      console.log(e);
+    } finally {
       set({ isUpdatingProfile: false });
+    }
+  },
+
+  deleteProfile: async () => {
+    try {
+      console.log("deleting....");
+      await axiosInstance.delete("/auth/delete-profile");
+      set({ authUser: null });
+      get().disconnectSocket();
+    } catch (e) {
+      toast.error("Failed to delete account");
     }
   },
 

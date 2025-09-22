@@ -2,14 +2,9 @@ import mongoose from "mongoose";
 
 const ProfilePicSchema = new mongoose.Schema(
   {
-    imageUrl: {
-      type: String,
-      required: true,
-    },
-    postedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    imageUrl: { type: String, required: true },
+    publicId: { type: String, required: true }, //  "users/<uid>/profile/xyz123"
+    postedAt: { type: Date, default: Date.now },
   },
   { _id: false },
 );

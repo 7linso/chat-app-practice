@@ -23,7 +23,7 @@ export const signup = async (req, res) => {
       return res.status(409).json({ message: "Email is already used." });
     }
 
-    const normalizedUsername = email.trim();
+    const normalizedUsername = username.trim();
 
     const existingUsername = await User.findOne({
       username: normalizedUsername,
@@ -57,14 +57,16 @@ export const signup = async (req, res) => {
 
     const latest = me.profilePic?.[0] || null;
 
-    res.status(201).json({
+    res.status(200).json({
       _id: newUser._id,
       fullName: newUser.fullName,
       username: newUser.username,
       email: newUser.email,
+      bio: newUser.bio ?? null,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
       profilePic: latest ? latest.imageUrl : null,
       profilePicPostedAt: latest?.postedAt ?? null,
-      bio: newUser.bio,
     });
   } catch (e) {
     console.log(`Error signup: ${e}`);
@@ -102,14 +104,16 @@ export const signin = async (req, res) => {
 
     const latest = me.profilePic?.[0] || null;
 
-    res.status(201).json({
+    res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
       username: user.username,
       email: user.email,
+      bio: user.bio ?? null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
       profilePic: latest ? latest.imageUrl : null,
       profilePicPostedAt: latest?.postedAt ?? null,
-      bio: user.bio,
     });
   } catch (e) {
     console.log(`Error signin: ${e}`);
@@ -139,20 +143,29 @@ export const updateProfilePic = async (req, res) => {
     }
 
     const trimmed = profilePic.trim();
-    const uploadSource = trimmed.startsWith("data:")
+    const isDataUrl = trimmed.startsWith("data:");
+    const uploadSource = isDataUrl
       ? trimmed
       : `data:image/jpeg;base64,${trimmed}`;
 
-    const result = await cloudinary.uploader.upload(uploadSource, {
-      folder: "chat-app-practice",
-      resource_type: "image",
-    });
+    const existing = await User.findById(userId, { profilePic: 1 }).lean();
+    if (!existing) return res.status(404).json({ message: "User not found." });
 
+    const result = await cloudinary.uploader.upload(uploadSource, {
+      folder: `chat-app-practice/users/${userId}/profile`,
+      overwrite: false,
+    });
     console.log("[updateProfile] cloudinary.secure_url:", result?.secure_url);
 
     if (!result?.secure_url) {
       return res.status(502).json({ message: "Upload failed at Cloudinary." });
     }
+
+    const newEntry = {
+      imageUrl: result.secure_url,
+      publicId: result.public_id,
+      postedAt: new Date(result.created_at || Date.now()),
+    };
 
     const MAX_PICS = 5;
     const updated = await User.findByIdAndUpdate(
@@ -160,32 +173,50 @@ export const updateProfilePic = async (req, res) => {
       {
         $push: {
           profilePic: {
-            $each: [{ imageUrl: result.secure_url, postedAt: new Date() }],
-            $slice: -MAX_PICS, // keep only the last N (remove this line if you want unlimited)
+            $each: [newEntry],
+            $slice: -MAX_PICS,
           },
         },
       },
-      {
-        new: true,
-        runValidators: true,
-        projection: { password: 0 },
-      },
+      { new: true, runValidators: true, projection: { password: 0 } },
     ).lean();
-
-    const latest = updated.profilePic?.[updated.profilePic.length - 1] ?? null;
 
     if (!updated) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    return res.status(200).json({
+    const prevPublicIds = (existing.profilePic || [])
+      .map((p) => p.publicId)
+      .filter(Boolean);
+    const keptPublicIds = (updated.profilePic || [])
+      .map((p) => p.publicId)
+      .filter(Boolean);
+    const overflow = prevPublicIds.filter(
+      (pid) => !keptPublicIds.includes(pid),
+    );
+
+    if (overflow.length) {
+      cloudinary.api
+        .delete_resources(overflow, {
+          resource_type: "image",
+          type: "upload",
+          invalidate: true,
+        })
+        .catch((err) => console.error("[Cloudinary cleanup] error:", err));
+    }
+
+    const latest = updated.profilePic.at(-1) ?? null;
+
+    res.status(200).json({
       _id: updated._id,
       fullName: updated.fullName,
       username: updated.username,
       email: updated.email,
+      bio: updated.bio ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
       profilePic: latest ? latest.imageUrl : null,
       profilePicPostedAt: latest?.postedAt ?? null,
-      bio: updated.bio ?? null,
     });
   } catch (e) {
     console.error("[updateProfile] error:", e);
@@ -195,11 +226,141 @@ export const updateProfilePic = async (req, res) => {
   }
 };
 
-export const checkAuth = (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
-    res.status(200).json(req.user);
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { fullName, username, email, bio } = req.body ?? {};
+
+    if (bio !== undefined && String(bio).length > 200) {
+      return res.status(400).json({ message: "Bio is too long." });
+    }
+
+    const update = {};
+
+    if (fullName !== undefined) update.fullName = String(fullName).trim();
+
+    if (username !== undefined) {
+      const normUsername = String(username).trim();
+      if (
+        normUsername.toLowerCase() !== String(req.user.username).toLowerCase()
+      ) {
+        const existingUsername = await User.findOne({
+          username: new RegExp(`^${normUsername}$`, "i"),
+          _id: { $ne: userId },
+        }).lean();
+        if (existingUsername) {
+          return res.status(409).json({ message: "Username is already used." });
+        }
+      }
+      update.username = normUsername;
+    }
+
+    if (email !== undefined) {
+      const normEmail = String(email).trim().toLowerCase();
+      if (normEmail !== String(req.user.email).toLowerCase()) {
+        const existingEmail = await User.findOne({
+          email: normEmail,
+          _id: { $ne: userId },
+        }).lean();
+        if (existingEmail) {
+          return res.status(409).json({ message: "Email is already used." });
+        }
+      }
+      update.email = normEmail;
+    }
+
+    if (bio !== undefined) update.bio = String(bio).trim();
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ message: "No changes provided." });
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { $set: update },
+      { new: true, runValidators: true, projection: { password: 0 } },
+    ).lean();
+
+    if (!updated) return res.status(404).json({ message: "User not found." });
+
+    const latest = updated.profilePic?.at(-1) ?? null;
+
+    return res.status(200).json({
+      _id: updated._id,
+      fullName: updated.fullName,
+      username: updated.username,
+      email: updated.email,
+      bio: updated.bio ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      profilePic: latest ? latest.imageUrl : null,
+      profilePicPostedAt: latest?.postedAt ?? null,
+    });
   } catch (e) {
-    console.log("Error checking profile");
-    res.staus(500).json({ message: "Not Authenticated" });
+    console.error("[updateProfile] error:", e);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
+};
+
+export const deleteProfile = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const user = await User.findById(userId).lean();
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (user.profilePic.length > 0) {
+      const publicIds = (user.profilePic || [])
+        .map((p) => p.publicId)
+        .filter(Boolean);
+
+      if (publicIds.length) {
+        await cloudinary.api.delete_resources(publicIds, {
+          resource_type: "image",
+          type: "upload",
+          invalidate: true,
+        });
+
+        const prefix = `chat-app-practice/users/${userId}/profile`;
+        await cloudinary.api
+          .delete_resources_by_prefix(prefix, { resource_type: "image" })
+          .catch(() => {});
+        await cloudinary.api.delete_folder(prefix).catch(() => {});
+      }
+    }
+    await User.deleteOne({ _id: userId });
+    res.status(200).json("Profile deleted");
+  } catch (e) {
+    console.error("[deleteProfile] error:", e);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const checkAuth = async (req, res) => {
+  const user = await User.findById(req.user._id, {
+    fullName: 1,
+    username: 1,
+    email: 1,
+    bio: 1,
+    profilePic: { $slice: -1 },
+    createdAt: 1,
+    updatedAt: 1,
+  }).lean();
+
+  const latest = user?.profilePic?.[0] || null;
+
+  res.status(200).json({
+    _id: user._id,
+    fullName: user.fullName,
+    username: user.username,
+    email: user.email,
+    bio: user.bio ?? null,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    profilePic: latest ? latest.imageUrl : null,
+    profilePicPostedAt: latest?.postedAt ?? null,
+  });
 };

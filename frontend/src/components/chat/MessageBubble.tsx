@@ -1,4 +1,5 @@
 import { formatMessageTime } from "../../lib/formatMessageTime";
+export type ISODate = string;
 
 type Message = {
   _id: string;
@@ -13,11 +14,13 @@ type Message = {
 type User = {
   _id: string;
   fullName: string;
+  username: string;
   email: string;
-  profilePic?: string;
-  password: string;
-  createdAt: string;
-  updatedAt: string;
+  bio?: string | null;
+  profilePic?: string | null;
+  profilePicPostedAt?: ISODate | null;
+  createdAt: ISODate;
+  updatedAt: ISODate;
 };
 
 type MessageBubbleProps = {

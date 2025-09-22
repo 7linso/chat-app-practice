@@ -2,22 +2,25 @@ import { toast } from "react-hot-toast";
 import { create } from "zustand";
 
 import { axiosInstance } from "../lib/axios";
+export type ISODate = string;
 
 import { useAuthStore } from "./useAuthStore";
 
-type profilePicProps = {
-  imageUrl: string | null;
-  postedAt: string;
-};
+// type profilePicProps = {
+//   imageUrl: string | null;
+//   postedAt: string;
+// };
 
 type User = {
   _id: string;
   fullName: string;
+  username: string;
   email: string;
-  profilePic?: profilePicProps[];
-  password: string;
-  createdAt: string;
-  updatedAt: string;
+  bio: string | null;
+  profilePic: string | null;
+  profilePicPostedAt: ISODate | null;
+  createdAt: ISODate;
+  updatedAt: ISODate;
 };
 
 type Message = {

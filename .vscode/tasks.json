@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "frontend:dev",
+            "type": "shell",
+            "command": "npm -w frontend run dev",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
+            "label": "backend:dev",
+            "type": "shell",
+            "command": "npm -w backend run dev",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
+            "label": "dev:all",
+            "dependsOn": [
+                "frontend:dev",
+                "backend:dev"
+            ],
+            "dependsOrder": "parallel"
+        }
+    ]
+}

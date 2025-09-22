@@ -5,6 +5,8 @@ import {
   signout,
   updateProfilePic,
   checkAuth,
+  updateProfile,
+  deleteProfile,
 } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
@@ -18,6 +20,10 @@ router.post("/signout", signout);
 
 router.put("/update-profile-pic", protectRoute, updateProfilePic);
 
+router.put("/update-profile", protectRoute, updateProfile);
+
 router.get("/check", protectRoute, checkAuth);
+
+router.delete("/delete-profile", protectRoute, deleteProfile);
 
 export default router;
