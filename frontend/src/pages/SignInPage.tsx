@@ -1,22 +1,42 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 
 import AuthImagePattern from "../components/AuthImagePattern";
+import { SignInValidator, type SignInInput } from "../lib/validatiors";
 import { useAuthStore } from "../store/useAuthStore";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    identifier: "",
-    password: "",
-  });
   const { signIn, isSigningIn } = useAuthStore();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    signIn(formData);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+    reset,
+  } = useForm<SignInInput>({
+    resolver: zodResolver(SignInValidator),
+    defaultValues: { identifier: "", password: "" },
+  });
+
+  const onSubmit: SubmitHandler<SignInInput> = async (data: SignInInput) => {
+    try {
+      await signIn(data);
+      reset();
+    } catch (e: any) {
+      const fields = e?.response?.data?.fields;
+      if (fields?.identifier)
+        setError("identifier", { message: fields.identifier });
+      if (!fields) toast.error(e?.response?.data?.message ?? "Sign in failed");
+    }
   };
+
+  const handleSignIn = handleSubmit(onSubmit);
 
   return (
     <div className="h-screen grid lg:grid-cols-2">
@@ -38,7 +58,7 @@ export default function SignInPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSignIn} className="space-y-6">
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-medium">
@@ -53,12 +73,13 @@ export default function SignInPage() {
                   type="text"
                   className={`input input-bordered w-full pl-10`}
                   placeholder="johny123@example.com"
-                  value={formData.identifier}
-                  onChange={(e) =>
-                    setFormData({ ...formData, identifier: e.target.value })
-                  }
+                  {...register("identifier")}
+                  aria-invalid={!!errors.identifier}
                 />
               </div>
+              <span className="text-sm text-error">
+                {errors.identifier?.message}
+              </span>
             </div>
 
             <div className="form-control">
@@ -73,10 +94,8 @@ export default function SignInPage() {
                   type={showPassword ? "text" : "password"}
                   className={`input input-bordered w-full pl-10`}
                   placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  {...register("password")}
+                  aria-invalid={!!errors.password}
                 />
                 <button
                   type="button"
@@ -90,6 +109,9 @@ export default function SignInPage() {
                   )}
                 </button>
               </div>
+              <span className="text-sm text-error">
+                {errors.password?.message}
+              </span>
             </div>
 
             <button

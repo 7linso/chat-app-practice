@@ -51,12 +51,12 @@ type UpdateProfilePicProps = {
   profilePic: string;
 };
 
-type UpdateProfileProps = {
+type UpdateProfileProps = Partial<{
   fullName: string;
   username: string;
   email: string;
   bio: string;
-};
+}>;
 
 type AuthActions = {
   checkAuth: () => Promise<void>;
@@ -168,7 +168,13 @@ export const useAuthStore = create<useAuthStoreProps>((set, get) => ({
   updateProfile: async (data: UpdateProfileProps) => {
     set({ isUpdatingProfile: true });
     try {
-      const res = await axiosInstance.put("/auth/update-profile", data);
+      const payload: UpdateProfileProps = {
+        ...(data.fullName?.trim() ? { fullName: data.fullName.trim() } : {}),
+        ...(data.username?.trim() ? { username: data.username.trim() } : {}),
+        ...(data.email?.trim() ? { email: data.email.trim() } : {}),
+        ...(data.bio?.trim() ? { bio: data.bio.trim() } : {}),
+      };
+      const res = await axiosInstance.put("/auth/update-profile", payload);
       toast.success("Account updated");
       set({ authUser: res.data });
 

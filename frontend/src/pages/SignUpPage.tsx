@@ -1,3 +1,4 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Eye,
   EyeOff,
@@ -6,45 +7,46 @@ import {
   Mail,
   MessageSquare,
   User,
+  IdCard,
 } from "lucide-react";
 import { useState } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 
 import AuthImagePattern from "../components/AuthImagePattern";
+import { SignUpValidator, type SignUpInput } from "../lib/validatiors";
 import { useAuthStore } from "../store/useAuthStore";
 
 export default function SignUpPage() {
+  const { signUp, isSigningUp } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    username: "",
-    email: "",
-    password: "",
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+    reset,
+  } = useForm<SignUpInput>({
+    resolver: zodResolver(SignUpValidator),
+    defaultValues: { fullName: "", username: "", email: "", password: "" },
   });
 
-  const { signUp, isSigningUp } = useAuthStore();
-
-  const validateForm = () => {
-    if (!formData.fullName.trim()) return toast.error("Full name is required");
-    if (!formData.username.trim())
-      return toast.error("Unique username is required");
-    if (!formData.email.trim()) return toast.error("Email is required");
-    if (!/\S+@\S+\.\S+/.test(formData.email))
-      return toast.error("Invalid email format");
-    if (!formData.password) return toast.error("Password is required");
-    if (formData.password.length < 6)
-      return toast.error("Password must be at least 6 characters");
-
-    return true;
+  const onSubmit: SubmitHandler<SignUpInput> = async (data: SignUpInput) => {
+    try {
+      await signUp(data);
+      toast.success("Welcome!");
+      reset();
+    } catch (e: any) {
+      const fields = e?.response?.data?.fields;
+      if (fields?.username) setError("username", { message: fields.username });
+      if (fields?.email) setError("email", { message: fields.email });
+      if (!fields) toast.error(e?.response?.data?.message ?? "Sign up failed");
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const success = validateForm();
-    if (success) signUp(formData);
-  };
+  const handleSignUp = handleSubmit(onSubmit);
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
@@ -65,7 +67,7 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSignUp} className="space-y-6">
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-medium">Full Name</span>
@@ -75,15 +77,16 @@ export default function SignUpPage() {
                   <User className="size-5 text-base-content/40" />
                 </div>
                 <input
+                  {...register("fullName")}
                   type="text"
                   className="input input-bordered w-full pl-10"
                   placeholder="John Doe"
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fullName: e.target.value })
-                  }
+                  aria-invalid={!!errors.fullName}
                 />
               </div>
+              <span className="text-sm text-error">
+                {errors.fullName?.message}
+              </span>
             </div>
 
             <div className="form-control">
@@ -92,18 +95,19 @@ export default function SignUpPage() {
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 z-10 pl-3 flex items-center">
-                  <User className="size-5 text-base-content/40" />
+                  <IdCard className="size-5 text-base-content/40" />
                 </div>
                 <input
+                  {...register("username")}
                   type="text"
                   className="input input-bordered w-full pl-10"
                   placeholder="johny123"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
+                  aria-invalid={!!errors.username}
                 />
               </div>
+              <span className="text-sm text-error">
+                {errors.username?.message}
+              </span>
             </div>
 
             <div className="form-control">
@@ -115,15 +119,16 @@ export default function SignUpPage() {
                   <Mail className="size-5 text-base-content/40" />
                 </div>
                 <input
+                  {...register("email")}
                   type="email"
                   className={`input input-bordered w-full pl-10`}
                   placeholder="johny123@example.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  aria-invalid={!!errors.email}
                 />
               </div>
+              <span className="text-sm text-error">
+                {errors.email?.message}
+              </span>
             </div>
 
             <div className="form-control">
@@ -135,13 +140,11 @@ export default function SignUpPage() {
                   <Lock className="size-5 text-base-content/40" />
                 </div>
                 <input
+                  {...register("password")}
                   type={showPassword ? "text" : "password"}
                   className={`input input-bordered w-full pl-10`}
                   placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  aria-invalid={!!errors.password}
                 />
                 <button
                   type="button"
@@ -155,6 +158,9 @@ export default function SignUpPage() {
                   )}
                 </button>
               </div>
+              <span className="text-sm text-error">
+                {errors.password?.message}
+              </span>
             </div>
 
             <button
